@@ -1,0 +1,122 @@
+ID,Titre,Auteurs,Année,Lien,License,Preuve license,nb colonnes,nb pages,Type article
+2024_dayarathna_mri-ct-pet-review.pdf,"Deep learning based synthesis of MRI, CT and PET: Review and analysis",Sanuwani Dayarathna et al,2024,https://www.sciencedirect.com/science/article/pii/S1361841523003067,CC BY 4.0,This is an open access article under the CC BY license (http://creativecommons.org/licenses/by/4.0/).,2,32,Review
+2021_wang_synthesis-review.pdf,"A review on medical imaging synthesis using deep learning
+and its clinical applications",Tonghe Wang et al,2021,https://pmc.ncbi.nlm.nih.gov/articles/PMC7856512/,CC BY 4.0,"This is an open access article under the terms of the http://creativecommons.org/licenses/by/4.0/ License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.",2,26,Review
+2025_guo_ct-synthesis-radiotherapy-review.pdf,Deep Learning for CT Synthesis in Radiotherapy,Yike Guo et al,2025,https://pmc.ncbi.nlm.nih.gov/articles/PMC12729896/,CC BY 4.0,This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).,1,24,Review
+2021_rossi_cbct-sct-supervised-vs-unsupervised.pdf,"Comparison of Supervised and Unsupervised Approaches for
+the Generation of Synthetic CT from Cone-Beam CT",Matteo Rossi et al,2021,https://pmc.ncbi.nlm.nih.gov/articles/PMC8395013/,CC BY 4.0,This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).,1,16,Methodes
+2024_sherwani_synthetic-image-radiotherapy-review.pdf,"A systematic literature review:
+deep learning techniques for
+synthetic medical image
+generation and their applications
+in radiotherapy",Moiz Khan Sherwani et al,2024,https://www.frontiersin.org/journals/radiology/articles/10.3389/fradi.2024.1385742/full,CC BY 4.0,"COPYRIGHT
+© 2024 Sherwani and Gopalakrishnan. This is
+an open-access article distributed under the
+terms of the Creative Commons Attribution
+License (CC BY). The use, distribution or
+reproduction in other forums is permitted,
+provided the original author(s) and the
+copyright owner(s) are credited and that the
+original publication in this journal is cited, in
+accordance with accepted academic practice.
+No use, distribution or reproduction is
+permitted which does not comply with
+these terms.(https://creativecommons.org/licenses/by/4.0/).",2,28,Review
+2021_farjam_mr-only-prostate-sct-035t.pdf,"Deep learning-based synthetic CT generation for MR-only
+radiotherapy of prostate cancer patients with 0.35T MRI
+linear accelerator",Reza Farjam et al,2021,https://pmc.ncbi.nlm.nih.gov/articles/PMC8364266/,CC BY 4.0,"This is an open access article under the terms of the http://creativecommons.org/licenses/by/4.0/ License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.",2,12,Methodes
+2022_osman_brain-mri-intramodality-synthesis.pdf,"Deep learning-based convolutional neural network for
+intramodality brain MRI synthesis",Alexander F. I. Osman et al,2022,https://pmc.ncbi.nlm.nih.gov/articles/PMC8992958/,CC BY 4.0,"This is an open access article under the terms of the http://creativecommons.org/licenses/by/4.0/ License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.",2,11,Methodes
+2025_molina-maza_cbct-mri-sct-proton-head.pdf,"Enhancing CBCT-based CT synthesis using planning MRI
+in adaptive proton therapy for head cancer: A deep
+learning approach",Juan Manuel Molina-Maza et al,2025,https://aapm.onlinelibrary.wiley.com/doi/10.1002/acm2.70367,CC BY 4.0,"This is an open access article under the terms of the Creative Commons Attribution License,which permits use,distribution and reproduction in any medium,provided
+the original work is properly cited. https://creativecommons.org/licenses/by/4.0/",2,18,Methodes
+2026_ramachandran_synthetic-mri-from-ct-head-neck.pdf,"Synthetic MRI from radiotherapy planning CT images for
+Head-and-Neck Cancer",Prabhakar Ramachandran et al,2026,https://aapm.onlinelibrary.wiley.com/doi/10.1002/acm2.70849,CC BY 4.0,"© 2026 The Author(s). Journal of Applied Clinical Medical Physics published by Wiley Periodicals, LLC on behalf of The American Association of Physicists in Medicine.
+
+This is an open access article under the terms of the Creative Commons Attribution License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.https://creativecommons.org/licenses/by/4.0/",2,15,Methodes
+2022_zimmermann_mri-sequence-independent-head-sct-proton.pdf,"An MRI sequence independent convolutional neural network for
+synthetic head CT generation in proton therapy",Lukas Zimmermann et al,2022,https://www.sciencedirect.com/science/article/pii/S0939388921000891,CC BY 4.0,"© 2021 The Author(s). Published by Elsevier GmbH on behalf of DGMP, ÖGMP and SSRMP. This is an open access article under the
+CC BY license (http://creativecommons.org/licenses/by/4.0/).",2,10,Methodes
+2022_yoo_cbct-sct-feature-driven-loss.pdf,"Generation and Evaluation of Synthetic Computed Tomography
+(CT) from Cone-Beam CT (CBCT) by Incorporating
+Feature-Driven Loss into Intensity-Based Loss Functions in
+Deep Convolutional Neural Network",Sang Kyun Yoo et al,2022,https://pmc.ncbi.nlm.nih.gov/articles/PMC9497126/,CC BY 4.0,"Licensee MDPI, Basel, Switzerland. This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).",1,12,Methodes
+2023_suwanraksa_cbct-ct-registration-gan-head-neck.pdf,"CBCT-to-CT Translation Using Registration-Based Generative
+Adversarial Networks in Patients with Head and Neck Cancer",Chitchaya Suwanraksa et al,2023,https://www.mdpi.com/2072-6694/15/7/2017,CC BY 4.0,"Copyright: © 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).",1,23,Methodes
+2023_liu_cbct-ct-cervical-unet-hybrid-dataset.pdf,"CBCT-to-CT Synthesis for Cervical Cancer Adaptive
+Radiotherapy via U-Net-Based Model Hierarchically Trained
+with Hybrid Dataset",Xi Liu et al,2023,https://www.mdpi.com/2072-6694/15/22/5479,CC BY 4.0,"Copyright: © 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).",1,19,Methodes
+2021_hu_cross-model-transformer-synthesis.pdf,Cross-Model Transformer Method for Medical Image Synthesis,Zebin Hu et al,2021,https://onlinelibrary.wiley.com/doi/10.1155/2021/5624909,CC BY 4.0,"Copyright © 2021 Zebin Hu et al. This is an open access article distributed under the Creative Commons Attribution License,
+which permits unrestricted use, distribution, and reproduction in any medium, provided the original work is properly cited. (https://creativecommons.org/licenses/by/4.0/).",2,7,Methodes
+2023_li_ct-from-mri-multiscale-network.pdf,"CT synthesis from MRI with an
+improved multi-scale learning
+network",Yan Li et al,2023,https://www.frontiersin.org/journals/physics/articles/10.3389/fphy.2023.1088899/full,CC BY 4.0,"COPYRIGHT
+© 2023 Li, Xu, Lu and Qi. This is an openaccess article distributed under the terms
+of the Creative Commons Attribution
+License (CC BY). The use, distribution or
+reproduction in other forums is permitted,
+provided the original author(s) and the
+copyright owner(s) are credited and that
+the original publication in this journal is
+cited, in accordance with accepted
+academic practice. No use, distribution or
+reproduction is permitted which does not
+comply with these terms. (https://creativecommons.org/licenses/by/4.0/).",2,11,Methodes
+2022_amini-amirkolaee_edge-guided-gan-image-translation.pdf,"Medical image translation using an edge-guided generative
+adversarial network with global-to-local feature fusion",Hamed Amini Amirkolaee et al,2022,https://pmc.ncbi.nlm.nih.gov/articles/PMC9724158/,CC BY 4.0,"This is an open access article under the Creative Commons Attribution (CC BY 4.0) license, which permits others to distribute, remix,
+adapt and build upon this work, for commercial use, provided the
+original work is properly cited",2,14,Methodes
+2022_yan_swin-transformer-gan-multimodal-translation.pdf,"Swin transformer-based GAN
+for multi-modal medical
+image translation",Shouang Yan et al,2022,https://www.frontiersin.org/journals/oncology/articles/10.3389/fonc.2022.942511/full,CC BY 4.0,"COPYRIGHT
+© 2022 Yan, Wang, Chen and Lyu. This
+is an open-access article distributed
+under the terms of the Creative
+Commons Attribution License (CC BY).
+The use, distribution or reproduction
+in other forums is permitted, provided
+the original author(s) and the
+copyright owner(s) are credited and
+that the original publication in this
+journal is cited, in accordance with
+accepted academic practice. No use,
+distribution or reproduction is
+permitted which does not comply with
+these terms.(https://creativecommons.org/licenses/by/4.0/).",2,13,Methodes
+2021_baydoun_pelvis-sct-cervical-single-input-gan.pdf,"Synthetic CT Generation of the Pelvis in Patients With Cervical
+Cancer: A Single Input Approach Using Generative Adversarial
+Network",ATALLAH BAYDOUN et al,2021,https://pmc.ncbi.nlm.nih.gov/articles/PMC7978399/,CC BY 4.0,"This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/",1,29,Methodes
+2023_szmul_cbct-sct-abdominal-paediatric.pdf,"Deep learning based synthetic CT from cone beam CT generation for
+abdominal paediatric radiotherapy",Adam Szmul et al,2023,https://doi.org/10.1088/1361-6560/acc921,CC BY 4.0,"Original content from this
+work may be used under
+the terms of the Creative
+Commons Attribution 4.0
+licence.
+Any further distribution of
+this work must maintain
+attribution to the
+author(s) and the title of
+the work, journal citation
+and DOI.",1,20,Methodes
+2022_rajagopal_synthetic-pet-from-mri-3d.pdf,Synthetic PET via Domain Translation of 3-D MRI,Abhejit Rajagopal et al,2022,https://pmc.ncbi.nlm.nih.gov/articles/PMC10311993/,CC BY 4.0,"This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/",2,11,Methodes
+2024_pepa_cbct-sct-unsupervised-paediatric-proton-carbon.pdf,"Unsupervised Deep Learning for Synthetic CT Generation from
+CBCT Images for Proton and Carbon Ion Therapy for
+Paediatric Patients",Matteo Pepa et al,2024,https://pmc.ncbi.nlm.nih.gov/articles/PMC11644336/,CC BY 4.0,"Copyright: © 2024 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/)",1,23,Methodes
