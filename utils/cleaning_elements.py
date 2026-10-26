@@ -29,13 +29,14 @@ DROP_SECTIONS = {
 
 # Lignes parasites (adresse e-mail = donnée personnelle : tu ne veux pas l'indexer).
 BOILERPLATE = [
+    r"^a\s*r\s*t\s*i\s*c\s*l\s*e\s+i\s*n\s*f\s*o\s*$",   # titre de la colonne latérale
     r"[\w.+-]+@[\w-]+\.[\w.-]+",         # adresse e-mail
     r"^\W*corresponding author",
     r"^available online at",
 ]
 
 REF_TITLE = re.compile(r"^\s*(\d+\.?\s*)?(references|bibliography)\s*$", re.IGNORECASE)
-ABSTRACT = re.compile(r"^\s*abstract\b", re.IGNORECASE)
+ABSTRACT = re.compile(r"^\s*a\s*b\s*s\s*t\s*r\s*a\s*c\s*t\b", re.IGNORECASE)
 
 # Ligatures typographiques : "beneﬁcial" -> "beneficial". Volontairement une
 # liste explicite : NFKC aurait aussi transformé "mm²" en "mm2".
