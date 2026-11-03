@@ -322,13 +322,13 @@ def find_long_embed_texts(chunks, count_tokens, limit=512, reserve=25):
     return result
 
 
-# def summarize_chunks(chunks, max_tokens=450):
-#     """Résumé rapide : nombre de chunks, tailles, tableaux."""
-#     if not chunks:
-#         print("Aucun chunk.")
-#         return
-#     sizes = [c.n_tokens for c in chunks]
-#     print(f"{len(chunks)} chunks · médiane {median(sizes):.0f} jetons · max {max(sizes)} · "
-#           f"{sum(s > max_tokens for s in sizes)} au-dessus de {max_tokens} · "
-#           f"{sum(bool(c.tables) for c in chunks)} avec tableau · "
-#           f"{sum(s < 30 for s in sizes)} de moins de 30 jetons")
+def summarize_chunks(chunks, max_tokens=450):
+    """Résumé rapide : nombre de chunks, tailles, tableaux."""
+    if not chunks:
+        print("Aucun chunk.")
+        return
+    sizes = [c.n_tokens for c in chunks]
+    print(f"{len(chunks)} chunks · médiane {median(sizes):.0f} jetons · max {max(sizes)} · "
+          f"{sum(s > max_tokens for s in sizes)} au-dessus de {max_tokens} · "
+          f"{sum(bool(c.tables) for c in chunks)} avec tableau · "
+          f"{sum(s < 30 for s in sizes)} de moins de 30 jetons")
