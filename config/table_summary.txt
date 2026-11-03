@@ -1,0 +1,9 @@
+You are describing a table from a scientific paper so that it can be found by search.
+Section of the paper: {section}
+Table (one row per line, cells separated by " | "):
+{table}
+
+Write 2 or 3 sentences (60 words maximum) saying what the table compares (rows and columns),
+the metrics with their units, and the main values.
+Copy numbers exactly. Do not add anything that is not in the table.
+Answer with the description only.

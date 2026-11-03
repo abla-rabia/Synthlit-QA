@@ -1,0 +1,23 @@
+# Chiffres, chemins et interrupteurs du projet (rien de secret ici : les clés sont dans .env)
+
+paths:
+  pdfs: data/pdfs                          # les PDF, nommés comme la colonne ID de la table
+  sources: data/sources_clean.csv
+  raw_cache: data/extracted_raw            # sortie hi_res en JSON (longue à produire)
+  table_summaries: data/table_summaries.json
+  table_prompt: config/prompts/table_summary.txt
+  chunks: data/chunks.jsonl
+  index: data/index                        # dossier persistant de Chroma
+
+ingestion:
+  max_tokens: 450                          # plafond d'un chunk (jetons du modèle d'embedding)
+  overlap_tokens: 60                       # recouvrement quand une section est coupée
+  min_headings: 3                          # en dessous : on utilise les Title d'unstructured
+  use_table_summaries: true                # false = texte brut des tableaux dans l'embedding
+  summary_llm: openai/gpt-oss-20b
+  summary_delay: 1.0                       # secondes entre deux appels (limites de débit Groq)
+
+embedding:
+  model: BAAI/bge-small-en-v1.5
+  max_seq_length: 512                      # à vérifier : model.max_seq_length
+  header_reserve: 25                       # jetons de l'en-tête "Auteur, année · section"
