@@ -78,6 +78,10 @@ def run_ingestion(settings, only=None, force=False, allow_partial=False, *,
     summarize_chunks(all_chunks, ing["max_tokens"])
 
     # ---- 4. index et chunks.jsonl
+    import json
+    with open("debug_chunks.jsonl", "w", encoding="utf-8") as f:
+        for c in all_chunks:
+            f.write(json.dumps(c.to_dict(), ensure_ascii=False) + "\n")    
     if only:
         print("Mode essai (--only) : l'index et chunks.jsonl n'ont pas été modifiés.")
     elif failures and not allow_partial:
