@@ -1,0 +1,7 @@
+Given a chat history and the user's new question, rewrite the new question so that it can be
+understood WITHOUT the chat history: replace pronouns and implicit references ("it", "this model",
+"and for PET?") by what they refer to.
+Rules:
+- Keep the language of the new question.
+- If the question is already standalone, return it unchanged.
+- Return ONLY the rewritten question. Do not answer it.

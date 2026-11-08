@@ -81,3 +81,15 @@ def short_citation(source):
     if authors and year:
         return f"{authors}, {year}"
     return authors or (source.get("title", "") or "")[:60]
+
+
+def catalogue_text(sources):
+    """Catalogue compact des articles, donné au LLM de réponse (cité [catalogue]).
+
+    Une ligne par article : '- Dayarathna et al., 2024 — Titre (revue)'.
+    """
+    lines = []
+    for source in sorted(sources.values(), key=lambda s: (s.get("year", ""), s["article_id"])):
+        kind = f" ({source['type']})" if source.get("type") else ""
+        lines.append(f"- {short_citation(source)} — {source.get('title', '')}{kind}")
+    return "\n".join(lines)

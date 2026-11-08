@@ -1,11 +1,14 @@
 # Chiffres, chemins et interrupteurs du projet (rien de secret ici : les clés sont dans .env)
 
 paths:
-  pdfs: data/pdf                         # les PDF, nommés comme la colonne ID de la table
-  sources: data/clean_sources.csv
+  pdfs: data/pdfs                          # les PDF, nommés comme la colonne ID de la table
+  sources: data/sources_clean.csv
   raw_cache: data/extracted_raw            # sortie hi_res en JSON (longue à produire)
   table_summaries: data/table_summaries.json
   table_prompt: config/prompts/table_summary.txt
+  multiquery_prompt: config/prompts/multiquery.txt
+  condense_prompt: config/prompts/condense_question.txt
+  answer_prompt: config/prompts/answer_system.txt
   chunks: data/chunks.jsonl
   index: data/index                        # dossier persistant de Chroma
 
@@ -21,3 +24,27 @@ embedding:
   model: BAAI/bge-small-en-v1.5
   max_seq_length: 512                      # à vérifier : model.max_seq_length
   header_reserve: 25                       # jetons de l'en-tête "Auteur, année · section"
+
+llm:
+  model: openai/gpt-oss-20b                # mode gratuit : Groq (clé GROQ_API_KEY dans .env)
+  temperature: 0
+
+retrieval:
+  n_extra_queries: 2                       # + la question = 3 requêtes au total
+  k_per_query: 10                          # chunks gardés par requête (après l'hybride)
+  k_candidates: 10                         # après la fusion RRF des 3 requêtes
+  k_final: 5                               # après le reranker : ce qui part au LLM
+  weight_semantic: 0.7
+  weight_keyword: 0.3
+  rrf_k: 60
+  use_multiquery: true                     # interrupteurs : pour mesurer chaque brique
+  use_hybrid: true
+  use_rerank: true
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  query_prefix: ""                         # bge-small v1.5 marche sans préfixe de requête
+  history_turns: 4                         # derniers échanges gardés en mémoire (jamais écrits sur disque)
+
+generation:
+  max_table_chars: 3000
+  max_retries: 1                           # 1 nouvel essai si les citations sont invalides
+  refusal: "I don't have enough information in the indexed papers to answer this question."
