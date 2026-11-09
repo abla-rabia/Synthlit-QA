@@ -71,6 +71,8 @@ def short_authors(authors):
         tokens = first.split()
         initials = len(tokens) > 1 and len(tokens[-1]) <= 2 and tokens[-1].isupper()
         surname = tokens[0] if initials else tokens[-1]   # "Wang T" (nom + initiales) ou "Tao Wang"
+    if len(surname) > 1 and surname.isupper():            # "BAYDOUN" -> "Baydoun"
+        surname = surname.title()
     return surname if len(parts) == 1 else f"{surname} et al."
 
 

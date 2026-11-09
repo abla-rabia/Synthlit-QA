@@ -1,8 +1,8 @@
 # Chiffres, chemins et interrupteurs du projet (rien de secret ici : les clés sont dans .env)
 
 paths:
-  pdfs: data/pdfs                          # les PDF, nommés comme la colonne ID de la table
-  sources: data/sources_clean.csv
+  pdfs: data/pdf                          # les PDF, nommés comme la colonne ID de la table
+  sources: data/clean_sources.csv
   raw_cache: data/extracted_raw            # sortie hi_res en JSON (longue à produire)
   table_summaries: data/table_summaries.json
   table_prompt: config/prompts/table_summary.txt

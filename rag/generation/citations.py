@@ -9,7 +9,11 @@ _CITE = re.compile(r"\[(catalogue|\d+)\]", re.IGNORECASE)
 _MULTI = re.compile(r"\[(\d+(?:\s*,\s*\d+)+)\]")
 
 
+_BRACKETS = str.maketrans({"【": "[", "】": "]", "［": "[", "］": "]"})
+
+
 def normalize_multi(text, n_passages):
+    text = text.translate(_BRACKETS)          # le LLM écrit parfois 【1】 (crochets pleine largeur)
     def expand(match):
         numbers = [int(x) for x in re.split(r"\s*,\s*", match.group(1))]
         if all(1 <= n <= n_passages for n in numbers):
