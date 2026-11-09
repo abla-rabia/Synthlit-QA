@@ -11,7 +11,6 @@ _STOP = {"the", "a", "an", "of", "and", "or", "to", "in", "on", "for", "with", "
 def tokenize(text):
     return [t for t in re.findall(r"\w+", (text or "").lower()) if t not in _STOP]
 
-
 class VectorSearcher:
     """Recherche sémantique dans Chroma (le même modèle d'embedding qu'à l'ingestion)."""
 
@@ -19,8 +18,13 @@ class VectorSearcher:
         self.store = store
         self.prefix = query_prefix
 
-    def search(self, query, k):
-        found = self.store.similarity_search_with_score(self.prefix + query, k=k)
+    def search(self, query, k, filter=None):
+        """Recherche sémantique. `filter` = dict Chroma (ex. {"article_id": "..."})."""
+        q = self.prefix + query
+        if filter:
+            found = self.store.similarity_search_with_score(q, k=k, filter=filter)
+        else:
+            found = self.store.similarity_search_with_score(q, k=k)
         return [doc.metadata["chunk_id"] for doc, _ in found]
 
 

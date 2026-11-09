@@ -1,0 +1,53 @@
+# Questions d'évaluation. Format du gold : "article | section | pages X-Y"
+# Hors sujet : gold: aucun
+# Types utilisés : factuelle, article, synthese, croisement, definition, tableau, hors_sujet
+
+- id: q01
+  question: "How many patients were included in the Zimmermann study and what tumour type did they have?"
+  type: factuelle
+  gold: "2022_zimmermann_mri-sequence-independent-head-sct-proton | Abstract | pages 1-1"
+  reponse_reference: "47 meningioma patients (33 training, 6 validation, 8 test), all treated with proton therapy."
+
+- id: q02
+  question: "Which databases and period did the Dayarathna review search?"
+  type: article
+  gold: "2024_dayarathna_mri-ct-pet-review | 1. Introduction | pages 2-2"
+  reponse_reference: "Scopus and PubMed, 2018 to July 2023 (with Google Scholar complement)."
+
+- id: q03
+  question: "What are common ways of using U-Net for medical image synthesis?"
+  type: synthese
+  gold: "2024_dayarathna_mri-ct-pet-review | 2.1.1. U-Nets | pages 3-3"
+  reponse_reference: "U-Net used as cGAN generator, base encoder-decoder, and 3D variant (Zimmermann)."
+
+- id: q04
+  question: "Which indexed papers address CBCT-to-CT synthesis, and which network types do they use?"
+  type: croisement
+  gold:
+    - "2021_rossi_cbct-sct-supervised-vs-unsupervised | 2.3. Deep Convolutional Neural Network Models | pages 4-5"
+    - "2022_yoo_cbct-sct-feature-driven-loss | 2.2. Loss Functions on FC DensNet | pages 3-4"
+    - "2023_suwanraksa_cbct-ct-registration-gan-head-neck | 2.4. Pix2Pix | pages 9-9"
+    - "2023_liu_cbct-ct-cervical-unet-hybrid-dataset | 2.2. Network Architecture | pages 6-6"
+    - "2023_szmul_cbct-sct-abdominal-paediatric | 2.1.3. Design of the cycleGAN network | pages 5-5"
+    - "2024_pepa_cbct-sct-unsupervised-paediatric-proton-carbon | 2.5. CycleGAN | pages 6-7"
+  reponse_reference: >-
+    Rossi 2021 (U-Net vs CycleGAN), Yoo 2022 (FC-DenseNet),
+    Suwanraksa 2023 (Pix2Pix/CycleGAN/UNIT + RegNet),
+    Liu 2023 (residual U-Net hierarchical), Szmul 2023 (CycleGAN + global residuals),
+    Pepa 2024 (CycleGAN Res-Net/U-Net).
+
+- id: q05
+  question: "What is the difference between MRI and CT?"
+  type: definition
+  gold:
+    - "2021_rossi_cbct-sct-supervised-vs-unsupervised | 1. Introduction | pages 1-1"
+    - "2021_baydoun_pelvis-sct-cervical-single-input-gan | I. INTRODUCTION | pages 2-3"
+  reponse_reference: >-
+    CT = X-rays, attenuation (HU), electron density, needed for dose.
+    MRI = magnetic field, radio waves, soft-tissue contrast, no electron density.
+
+- id: q06
+  question: "What is a good recipe for jollof rice?"
+  type: hors_sujet
+  gold: aucun
+  reponse_reference: "Refus attendu (la phrase de refus du système, pas une réponse sur le riz)."
