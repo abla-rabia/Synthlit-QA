@@ -1,132 +1,94 @@
-"""Évaluation : pose les questions de data/eval/questions.yaml au système et écrit les tableaux.
+"""Évaluation du système sur data/eval/questions.yaml.
 
-Un run = une configuration. On change UNE chose à la fois, on relance, on compare :
-    python scripts/eval.py                          # tout activé  -> data/eval/runs/full
-    python scripts/eval.py --no-rerank              # sans reranker -> data/eval/runs/no-rerank
-    python scripts/eval.py --no-multiquery          # (aussi --no-hybrid)
-    python scripts/eval.py --score data/eval/runs/full      # recalcule le résumé après avoir rempli manual.csv
-    python scripts/eval.py --compare data/eval/runs/full data/eval/runs/no-rerank
-
-Fichiers écrits dans le dossier du run :
-    results.csv  (un ligne par question, chiffres automatiques)
-    review.md    (réponses + passages cités, à lire pour la fidélité)
-    manual.csv   (à remplir : claims_total, claims_supported)
-    summary.json (les chiffres globaux)
-    answers.jsonl (sortie brute : texte, citations, chunks candidats et retenus)
+Lancer un run (depuis la racine du projet) :
+    python scripts/eval.py --name baseline
+    python scripts/eval.py --name sans_rerank --no-rerank       # UN seul changement par run
+    python scripts/eval.py --name essai --only q01 q02          # quelques questions
+Puis ouvre data/eval/runs/<name>/review.md, remplis manual.csv, et calcule :
+    python scripts/eval.py --score data/eval/runs/baseline
 """
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from rag.evaluation import (compare, error_row, evaluate_question, format_summary, load_questions,
-                            read_manual, read_results, summarize, write_manual_template,
-                            write_results, write_review)
+from dotenv import load_dotenv
 
-BRICKS = ("multiquery", "hybrid", "rerank")
-
-
-def run_name(args):
-    off = [b for b in BRICKS if getattr(args, f"no_{b}")]
-    return args.name or ("no-" + "-no-".join(off) if off else "full")
-
-
-def score(run_dir):
-    run_dir = Path(run_dir)
-    rows = read_results(run_dir / "results.csv")
-    summary = summarize(rows, read_manual(run_dir / "manual.csv"))
-    (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(format_summary(summary, run_dir.name))
-    return summary
-
-
-def do_compare(dirs):
-    items = []
-    for d in dirs:
-        s = score(d)          # recalcule avec le manual.csv à jour
-        items.append((Path(d).name, s))
-        print()
-    print(compare(items))
-
-
-def run(args):
-    from dotenv import load_dotenv
-    from rag.config import load_settings
-    from rag.pipeline import load_pipeline
-
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-    load_dotenv()
-    settings = load_settings(args.settings)
-    for brick in BRICKS:
-        if getattr(args, f"no_{brick}"):
-            settings["retrieval"][f"use_{brick}"] = False
-    snapshot = {b: settings["retrieval"].get(f"use_{b}", True) for b in BRICKS}
-
-    print("Chargement du système…")
-    pipeline = load_pipeline(settings)
-    try:
-        known = set(pipeline.sources)
-    except TypeError:
-        known = None
-    questions = load_questions(args.questions, known_articles=known)
-    if args.limit:
-        questions = questions[:args.limit]
-
-    name = run_name(args)
-    run_dir = Path(args.out) / name
-    run_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Run « {name} » : {len(questions)} questions, réglages {snapshot}\n")
-
-    results, rows, raw = [], [], []
-    for i, q in enumerate(questions, 1):
-        try:
-            answer = pipeline.ask(q["question"])          # chaque question est indépendante (pas d'historique)
-            row = evaluate_question(q, answer)
-            raw.append({"id": q["id"], "answer": answer.text, "refused": answer.refused,
-                        "citations": answer.citations,
-                        "candidates": [h.chunk_id for h in answer.retrieval.candidates],
-                        "final": [h.chunk_id for h in answer.retrieval.final]})
-        except Exception as exc:                          # une erreur ne doit pas arrêter les 21 autres
-            answer, row = None, error_row(q, exc)
-            print(f"  ! {q['id']} : {row['error']}")
-        rows.append(row)
-        results.append((q, answer, row))
-        print(f"[{i}/{len(questions)}] {q['id']} {q['type']:<14} top10 {row['found_10']}/{row['gold_n']}  "
-              f"top5 {row['found_5']}/{row['gold_n']}  refus {row['refused']}")
-
-    write_results(run_dir / "results.csv", rows)
-    write_review(run_dir / "review.md", results, snapshot)
-    write_manual_template(run_dir / "manual.csv", rows)
-    with open(run_dir / "answers.jsonl", "w", encoding="utf-8") as f:
-        for item in raw:
-            f.write(json.dumps(item, ensure_ascii=False) + "\n")
-    print()
-    score(run_dir)
-    print(f"\nFichiers dans {run_dir}. Prochaine étape : lis review.md, remplis manual.csv, puis\n"
-          f"  python scripts/eval.py --score {run_dir}")
+from rag.config import load_settings
+from rag.evaluation import (evaluate_question, format_summary, load_questions, read_manual, summarize,
+                            write_manual_template, write_results, write_review)
+from rag.sources import load_sources
 
 
 def main():
-    p = argparse.ArgumentParser(description="Évaluation du RAG.")
-    p.add_argument("--settings", default="config/settings.yaml")
-    p.add_argument("--questions", default="data/eval/questions.yaml")
-    p.add_argument("--out", default="data/eval/runs")
-    p.add_argument("--name", help="nom du dossier du run (par défaut : full, no-rerank, …)")
-    p.add_argument("--limit", type=int, help="ne poser que les N premières questions (test rapide)")
-    p.add_argument("--score", metavar="DOSSIER", help="recalcule le résumé d'un run (après manual.csv)")
-    p.add_argument("--compare", nargs="+", metavar="DOSSIER", help="compare plusieurs runs")
-    for b in BRICKS:
-        p.add_argument(f"--no-{b}", action="store_true")
-    args = p.parse_args()
-    if args.compare:
-        do_compare(args.compare)
-    elif args.score:
-        score(args.score)
-    else:
-        run(args)
+    parser = argparse.ArgumentParser(description="Évalue le retrieval et la génération.")
+    parser.add_argument("--settings", default="config/settings.yaml")
+    parser.add_argument("--questions", default="data/eval/questions.yaml")
+    parser.add_argument("--runs", default="data/eval/runs")
+    parser.add_argument("--name", help="nom du run (dossier dans data/eval/runs)")
+    parser.add_argument("--only", nargs="+", help="ids de questions à poser")
+    parser.add_argument("--delay", type=float, default=2.0, help="secondes entre deux questions (limites Groq)")
+    parser.add_argument("--score", help="dossier d'un run : recalcule le résumé avec manual.csv")
+    for brick in ("multiquery", "hybrid", "rerank"):
+        parser.add_argument(f"--no-{brick}", action="store_true")
+    args = parser.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if args.score:
+        folder = Path(args.score)
+        rows = json.loads((folder / "rows.json").read_text(encoding="utf-8"))
+        summary = summarize(rows, read_manual(folder / "manual.csv"))
+        (folder / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(format_summary(summary))
+        return
+
+    if not args.name:
+        parser.error("--name est obligatoire (ex. --name baseline)")
+    load_dotenv()
+    settings = load_settings(args.settings)
+    for brick in ("multiquery", "hybrid", "rerank"):
+        if getattr(args, f"no_{brick}"):
+            settings["retrieval"][f"use_{brick}"] = False
+
+    sources = load_sources(settings["paths"]["sources"])
+    questions = load_questions(args.questions, sources)          # valide avant de dépenser des appels
+    if args.only:
+        unknown = set(args.only) - {q["id"] for q in questions}
+        if unknown:
+            parser.error(f"ids inconnus : {sorted(unknown)}")
+        questions = [q for q in questions if q["id"] in args.only]
+
+    from rag.pipeline import load_pipeline
+    print("Chargement…")
+    pipeline = load_pipeline(settings)
+
+    results = []
+    for i, question in enumerate(questions, start=1):
+        try:
+            answer, error = pipeline.ask(question["question"]), ""
+        except Exception as e:                                    # limite de débit, réseau…
+            answer, error = None, f"{type(e).__name__}: {e}"
+        row = evaluate_question(question, answer, error)
+        results.append((question, answer, row))
+        status = error or f"recall@10={row['recall10']} recall@5={row['recall5']} refus={row['refused']}"
+        print(f"[{i}/{len(questions)}] {question['id']} {status}")
+        time.sleep(args.delay)
+
+    folder = Path(args.runs) / args.name
+    rows = [r for _, _, r in results]
+    snapshot = {**settings["retrieval"], "llm": settings["llm"]["model"]}
+    write_results(folder, rows)
+    write_review(folder / "review.md", results, snapshot)
+    write_manual_template(folder, rows)
+    summary = summarize(rows)
+    (folder / "summary.json").write_text(json.dumps({"reglages": snapshot, **summary}, ensure_ascii=False, indent=1),
+                                         encoding="utf-8")
+    print("\n" + format_summary(summary))
+    print(f"\nFichiers : {folder}  (review.md à lire, manual.csv à remplir, puis --score)")
 
 
 if __name__ == "__main__":

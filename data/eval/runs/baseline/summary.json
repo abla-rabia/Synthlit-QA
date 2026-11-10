@@ -1,0 +1,74 @@
+{
+ "reglages": {
+  "n_extra_queries": 2,
+  "k_per_query": 10,
+  "k_candidates": 10,
+  "k_final": 5,
+  "weight_semantic": 0.7,
+  "weight_keyword": 0.3,
+  "rrf_k": 60,
+  "use_multiquery": true,
+  "use_hybrid": true,
+  "use_rerank": true,
+  "rerank_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "query_prefix": "",
+  "history_turns": 4,
+  "llm": "openai/gpt-oss-20b"
+ },
+ "toutes": {
+  "n": 14,
+  "n_avec_gold": 8,
+  "n_hors_sujet": 5,
+  "recall@10": 0.75,
+  "recall@5": 0.75,
+  "recall@5 par type": {
+   "specific": 1.0,
+   "definition": 1.0,
+   "comparaison": 0.0,
+   "limite-large": 0.0,
+   "discussion": 1.0,
+   "tableau": 1.0
+  },
+  "refus a tort (question avec gold refusee)": 1,
+  "hors sujet refuses": "5/5",
+  "citations valides": 1.0,
+  "n_catalogue": 1,
+  "catalogue cite [catalogue]": 1.0
+ },
+ "dev": {
+  "n": 11,
+  "n_avec_gold": 6,
+  "n_hors_sujet": 4,
+  "recall@10": 0.667,
+  "recall@5": 0.667,
+  "recall@5 par type": {
+   "specific": 1.0,
+   "definition": 1.0,
+   "comparaison": 0.0,
+   "limite-large": 0.0,
+   "discussion": 1.0
+  },
+  "refus a tort (question avec gold refusee)": 1,
+  "hors sujet refuses": "4/4",
+  "citations valides": 1.0,
+  "n_catalogue": 1,
+  "catalogue cite [catalogue]": 1.0
+ },
+ "heldout": {
+  "n": 3,
+  "n_avec_gold": 2,
+  "n_hors_sujet": 1,
+  "recall@10": 1.0,
+  "recall@5": 1.0,
+  "recall@5 par type": {
+   "definition": 1.0,
+   "tableau": 1.0
+  },
+  "refus a tort (question avec gold refusee)": 0,
+  "hors sujet refuses": "1/1",
+  "citations valides": 1.0,
+  "n_catalogue": 0,
+  "catalogue cite [catalogue]": null
+ },
+ "erreurs": []
+}

@@ -1,14 +1,16 @@
-"""Évaluation du RAG : questions + gold -> tableau de résultats -> résumé.
+"""Évaluation : questions + gold -> mesures automatiques (recall@10, recall@5, refus, citations)
+et fichiers à relire à la main (fidélité, hors sujet).
 
-Mesures
-  Automatiques : recall@10 (candidats après RRF), recall@5 (après rerank),
-                 refus correct (hors sujet refusé / question normale non refusée).
-  Manuelle     : fidélité = affirmations soutenues par les passages cités / affirmations totales
-                 (tu remplis claims_total et claims_supported dans manual.csv).
+Une question (YAML) :
+    - id: q01
+      type: definition                  # libre ; "offtopic" pour les questions hors sujet
+      question: Which generative models are used for PET synthesis from MRI?
+      gold: 2022_rajagopal_synthetic-pet-from-mri-3d | 2.1 | pages 3-4     # ou "aucun" si hors sujet
+      reponse_reference: Une phrase avec la bonne réponse.
+      heldout: false                    # true = question gardée de côté (jamais utilisée pour régler)
 
-Un gold = un article + une section + des pages. Un chunk "retrouve" le gold si c'est le même article
-ET si ses pages recoupent celles du gold. Pour une question à plusieurs gold (croisement),
-le recall est la part des gold retrouvés (ex. 4 sur 6 = 0.67).
+`gold` peut être une liste (plusieurs passages valables : un seul suffit pour réussir).
+Règle de réussite : un chunk du MÊME article dont les pages recoupent celles du gold.
 """
 import csv
 import json
@@ -17,275 +19,269 @@ from pathlib import Path
 
 import yaml
 
-SEP = ";"          # point-virgule : s'ouvre correctement dans Excel en français
-RESULT_FIELDS = ["id", "type", "question", "gold_n", "found_10", "found_5", "recall_10", "recall_5",
-                 "expects_refusal", "refused", "refusal_ok", "n_citations", "retries", "error"]
-MANUAL_FIELDS = ["id", "claims_total", "claims_supported", "note"]
-_PAGES_PART = re.compile(r"(?i)^\s*(pages?|pp?\.?)\s*\d")
+OFFTOPIC_TYPES = {"offtopic", "horssujet"}
+NO_GOLD_TYPES = OFFTOPIC_TYPES | {"catalogue"}      # "catalogue" : réponse prise dans le catalogue, pas dans un passage
+NO_GOLD_WORDS = {"aucun", "aucune", "none", "no", "n/a", "na", "rien", "hors", "nothing", "null"}
 
 
-# ---------- gold ----------
-def _pages_from(value):
-    """'pages 3-4' / 'p. 5' / 7 / [2, 3] -> (début, fin) ; (None, None) si rien."""
-    if value is None or value == "":
-        return None, None
-    if isinstance(value, (list, tuple)):
-        nums = [int(x) for x in value]
-    elif isinstance(value, int):
-        nums = [value]
-    else:
-        nums = [int(x) for x in re.findall(r"\d+", str(value))]
-    if not nums:
-        return None, None
-    return nums[0], nums[-1]
+def _type_key(value):
+    return re.sub(r"[^a-z]", "", (value or "").lower())
 
 
-def _parse_one(item):
-    if isinstance(item, dict):
-        article = str(item.get("article", "")).strip()
-        start, end = _pages_from(item.get("pages"))
-        section = str(item.get("section", "") or "").strip()
-    else:
-        parts = [p.strip() for p in str(item).split("|")]
-        article, section, pages = parts[0], "", None
-        for part in parts[1:]:
-            if _PAGES_PART.match(part):
-                pages = part
-            elif not section:
-                section = part
-        start, end = _pages_from(pages)
-    if not article:
-        raise ValueError(f"gold sans article : {item!r}")
-    return {"article": article, "section": section, "start": start, "end": end}
+def _parse_pages(text):
+    numbers = [int(n) for n in re.findall(r"\d+", str(text))]
+    return (min(numbers), max(numbers)) if numbers else (None, None)
 
 
 def parse_gold(value):
-    """Gold -> liste de {article, section, start, end}. 'aucun' / vide -> []."""
-    if value is None:
-        return []
-    if isinstance(value, str) and value.strip().lower() in ("", "aucun", "none"):
+    """'article | section | pages 3-4'  (ou un dict, ou une liste de ceux-là, ou 'aucun') -> liste de dicts."""
+    if value is None or value == "" or value == []:
         return []
     items = value if isinstance(value, list) else [value]
-    return [_parse_one(i) for i in items]
+    gold = []
+    for item in items:
+        if isinstance(item, dict):
+            article, section = item.get("article", ""), item.get("section", "")
+            start, end = _parse_pages(item.get("pages", ""))
+        else:
+            text = str(item).strip()
+            first_word = re.sub(r"[^a-zà-ÿ/]", " ", text.lower()).split()[:1]
+            if not text or text == "-" or (first_word and first_word[0] in NO_GOLD_WORDS):
+                continue                              # "aucun", "Aucune.", "none", "N/A", "hors sujet"…
+            parts = [p.strip() for p in text.split("|")]
+            article = parts[0]
+            section = parts[1] if len(parts) > 1 else ""
+            start, end = _parse_pages(parts[2]) if len(parts) > 2 else (None, None)
+        gold.append({"article": str(article).strip(), "section": str(section or "").strip(),
+                     "start": start, "end": end})
+    return gold
 
 
-def is_hit(hit, gold):
-    """Le chunk est du bon article et ses pages recoupent celles du gold (article seul si pas de pages)."""
-    if hit.article_id != gold["article"]:
-        return False
-    if gold["start"] is None:
-        return True
-    h_start = hit.page_start or 0
-    h_end = hit.page_end or h_start
-    return h_start <= gold["end"] and h_end >= gold["start"]
-
-
-# ---------- questions ----------
-def load_questions(path, known_articles=None):
-    """Lit questions.yaml, vérifie la forme. Renvoie une liste de dicts avec 'gold_items' ajouté."""
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    if not isinstance(data, list) or not data:
-        raise ValueError("questions.yaml doit contenir une liste de questions (lignes qui commencent par '- id:').")
-    seen, out = set(), []
-    for i, q in enumerate(data, 1):
-        for key in ("id", "question", "type"):
-            if not q.get(key):
-                raise ValueError(f"Question n°{i} : champ '{key}' manquant.")
-        qid = str(q["id"])
+def load_questions(path, sources=None):
+    """Lit et VALIDE le fichier (erreur claire si un id est en double, un gold manque, un article est inconnu)."""
+    items = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or []
+    questions, seen = [], set()
+    for raw in items:
+        for key in ("id", "type", "question"):
+            if not raw.get(key):
+                raise ValueError(f"{raw.get('id', '?')} : champ '{key}' manquant")
+        qid = str(raw["id"])
         if qid in seen:
-            raise ValueError(f"Identifiant en double : {qid}")
+            raise ValueError(f"id en double : {qid}")
         seen.add(qid)
-        gold = parse_gold(q.get("gold"))
-        if q["type"] == "hors_sujet" and gold:
-            raise ValueError(f"{qid} : une question hors_sujet doit avoir 'gold: aucun'.")
-        if q["type"] != "hors_sujet" and not gold:
-            raise ValueError(f"{qid} : il manque le gold (article | section | pages X-Y).")
-        if known_articles is not None:
-            for g in gold:
-                if g["article"] not in known_articles:
-                    raise ValueError(f"{qid} : article inconnu '{g['article']}' (faute de frappe ?).")
-        out.append({**q, "id": qid, "gold_items": gold})
-    return out
+        gold = parse_gold(raw.get("gold"))
+        offtopic = _type_key(raw["type"]) in OFFTOPIC_TYPES
+        catalogue = _type_key(raw["type"]) == "catalogue"
+        if (offtopic or catalogue) and gold:
+            raise ValueError(f"{qid} : type {raw['type']} mais gold lu = {raw.get('gold')!r} "
+                             "(écris exactement  gold: aucun)")
+        if not (offtopic or catalogue) and not gold:
+            raise ValueError(f"{qid} : gold manquant")
+        for g in gold:
+            if sources is not None and g["article"] not in sources:
+                raise ValueError(f"{qid} : article inconnu '{g['article']}' (fautes de frappe ?)")
+        questions.append({"id": qid, "type": str(raw["type"]), "question": str(raw["question"]).strip(),
+                          "gold": gold, "offtopic": offtopic, "catalogue": catalogue, "heldout": bool(raw.get("heldout", False)),
+                          "reference": str(raw.get("reponse_reference") or raw.get("reference") or "").strip()})
+    return questions
 
 
-# ---------- une question ----------
-def _covered(hits, gold_items):
-    return [any(is_hit(h, g) for h in hits) for g in gold_items]
-
-
-def evaluate_question(question, answer):
-    """Ligne de résultat (dict) pour une question et la Answer du système."""
-    gold = question["gold_items"]
-    r = answer.retrieval
-    c10 = _covered(r.candidates, gold) if r else []
-    c5 = _covered(r.final, gold) if r else []
-    expects_refusal = not gold
-    n = len(gold)
-    return {
-        "id": question["id"], "type": question["type"], "question": question["question"],
-        "gold_n": n,
-        "found_10": sum(c10), "found_5": sum(c5),
-        "recall_10": round(sum(c10) / n, 3) if n else "",
-        "recall_5": round(sum(c5) / n, 3) if n else "",
-        "expects_refusal": int(expects_refusal), "refused": int(bool(answer.refused)),
-        "refusal_ok": int(bool(answer.refused) == expects_refusal),
-        "n_citations": len(answer.citations), "retries": answer.retries, "error": "",
-    }
-
-
-def error_row(question, exc):
-    return {"id": question["id"], "type": question["type"], "question": question["question"],
-            "gold_n": len(question["gold_items"]), "found_10": "", "found_5": "", "recall_10": "",
-            "recall_5": "", "expects_refusal": int(not question["gold_items"]), "refused": "",
-            "refusal_ok": "", "n_citations": "", "retries": "", "error": f"{type(exc).__name__}: {exc}"}
-
-
-# ---------- fichiers ----------
-def write_results(path, rows):
-    with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=RESULT_FIELDS, delimiter=SEP)
-        w.writeheader()
-        w.writerows(rows)
-
-
-def read_results(path):
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f, delimiter=SEP))
-
-
-def write_manual_template(path, rows):
-    """manual.csv : une ligne par question répondue. Ne touche jamais à ce que tu as déjà rempli."""
-    path = Path(path)
-    existing = {}
-    if path.exists():
-        with open(path, encoding="utf-8-sig", newline="") as f:
-            existing = {r["id"]: r for r in csv.DictReader(f, delimiter=SEP)}
-    with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=MANUAL_FIELDS, delimiter=SEP)
-        w.writeheader()
-        for row in rows:
-            if row["id"] in existing:
-                w.writerow({k: existing[row["id"]].get(k, "") for k in MANUAL_FIELDS})
-            elif not row["expects_refusal"] and not row["refused"]:      # on ne note que les vraies réponses
-                w.writerow({"id": row["id"], "claims_total": "", "claims_supported": "", "note": ""})
-
-
-def read_manual(path):
-    """{id: (claims_total, claims_supported)} pour les lignes remplies. Vérifie la cohérence."""
-    path = Path(path)
-    if not path.exists():
-        return {}
-    out = {}
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        for r in csv.DictReader(f, delimiter=SEP):
-            total, sup = (r.get("claims_total") or "").strip(), (r.get("claims_supported") or "").strip()
-            if not total and not sup:
-                continue
-            if not (total.isdigit() and sup.isdigit()):
-                raise ValueError(f"manual.csv, {r['id']} : mets des nombres entiers (reçu '{total}' / '{sup}').")
-            if int(sup) > int(total):
-                raise ValueError(f"manual.csv, {r['id']} : claims_supported ({sup}) > claims_total ({total}).")
-            out[r["id"]] = (int(total), int(sup))
-    return out
-
-
-def _clip(text, n=1400):
-    text = " ".join((text or "").split())
-    return text if len(text) <= n else text[:n] + " …"
-
-
-def write_review(path, results, settings_snapshot):
-    """review.md : pour chaque question, la réponse et les passages cités, à comparer pour la fidélité.
-
-    results = liste de (question, answer, row). answer peut être None (erreur)."""
-    lines = ["# Relecture manuelle", "",
-             "Pour chaque réponse : compte les affirmations (claims_total) et combien sont bien dans les "
-             "passages cités (claims_supported), puis écris les deux nombres dans manual.csv.", "",
-             f"Réglages du run : `{json.dumps(settings_snapshot, ensure_ascii=False)}`", ""]
-    for question, answer, row in results:
-        lines += [f"---\n\n## {question['id']} · {question['type']}", f"**Question :** {question['question']}", ""]
-        gold = [f"{g['article']} | {g['section']} | pp. {g['start']}-{g['end']}" for g in question["gold_items"]]
-        lines += ["**Gold :** " + ("aucun (refus attendu)" if not gold else ""), *[f"- {g}" for g in gold]]
-        lines += ["", f"**Réponse de référence :** {question.get('reponse_reference', '')}", ""]
-        if answer is None:
-            lines += [f"**ERREUR :** {row['error']}", ""]
+# ------------------------------------------------------------------ mesures automatiques
+def is_hit(hit, gold):
+    """Ce chunk contient-il (au moins en partie) le passage gold ?"""
+    for g in gold:
+        if hit.article_id != g["article"]:
             continue
-        lines += [f"**Retrouvé :** top10 {row['found_10']}/{row['gold_n']} · top5 {row['found_5']}/{row['gold_n']}"
-                  if row["gold_n"] else f"**Refus :** {'oui' if answer.refused else 'NON'} (attendu : oui)", "",
-                  "**Réponse du système :**", "", answer.text, ""]
-        for c in answer.citations:
-            n = c["n"]
-            hit = answer.hits[n - 1] if 0 < n <= len(answer.hits) else None
-            if hit is None:
-                continue
-            lines += [f"> **[{n}] {hit.article_id}** · {hit.section} · p. {hit.page_start}-{hit.page_end}",
-                      f"> {_clip(hit.text)}", ""]
-    Path(path).write_text("\n".join(lines), encoding="utf-8")
+        if g["start"] is None or (hit.page_start <= g["end"] and hit.page_end >= g["start"]):
+            return True
+    return False
 
 
-# ---------- résumé ----------
+def first_rank(hits, gold):
+    """Position (1 = meilleure) du premier chunk gold dans la liste, ou None."""
+    for position, hit in enumerate(hits, start=1):
+        if is_hit(hit, gold):
+            return position
+    return None
+
+
+def evaluate_question(question, answer=None, error=""):
+    """Une ligne de résultats. `answer` est un rag.types.Answer (None si erreur)."""
+    row = {"id": question["id"], "type": question["type"], "heldout": question["heldout"],
+           "offtopic": question["offtopic"], "catalogue": question.get("catalogue", False), "error": error, "recall10": None, "recall5": None,
+           "rank10": None, "rank5": None, "refused": None, "retries": None, "removed": None,
+           "n_citations": None, "used_catalogue": None, "trace_ok": None}
+    if answer is None:
+        return row
+    retrieval = answer.retrieval
+    if question["gold"]:
+        row["rank10"] = first_rank(retrieval.candidates, question["gold"])
+        row["rank5"] = first_rank(retrieval.final, question["gold"])
+        row["recall10"] = int(row["rank10"] is not None)
+        row["recall5"] = int(row["rank5"] is not None)
+    row.update(refused=int(answer.refused), retries=answer.retries, removed=list(answer.removed),
+               n_citations=len(answer.citations), used_catalogue=int(answer.used_catalogue))
+    row["trace_ok"] = int(not answer.removed and (answer.refused or answer.used_catalogue
+                                                  or len(answer.citations) > 0))
+    return row
+
+
 def _mean(values):
-    values = [float(v) for v in values if v not in ("", None)]
+    values = [v for v in values if v is not None]
     return round(sum(values) / len(values), 3) if values else None
 
 
-def summarize(rows, manual=None):
-    """Chiffres globaux et par type. rows = lignes de résultats (dicts, valeurs éventuellement en texte)."""
-    ok = [r for r in rows if not r.get("error")]
-    answerable = [r for r in ok if str(r["expects_refusal"]) == "0"]
-    off_topic = [r for r in ok if str(r["expects_refusal"]) == "1"]
+def stats(rows):
+    rows = [r for r in rows if not r["error"]]
+    scored = [r for r in rows if r["recall10"] is not None]
+    off = [r for r in rows if r["offtopic"]]
+    cat = [r for r in rows if r.get("catalogue")]
     by_type = {}
-    for t in sorted({r["type"] for r in answerable}):
-        sub = [r for r in answerable if r["type"] == t]
-        by_type[t] = {"n": len(sub), "recall_10": _mean(r["recall_10"] for r in sub),
-                      "recall_5": _mean(r["recall_5"] for r in sub)}
-    out = {
-        "n_questions": len(rows), "n_errors": len(rows) - len(ok),
-        "recall_10": _mean(r["recall_10"] for r in answerable),
-        "recall_5": _mean(r["recall_5"] for r in answerable),
-        "hit_10": _mean(int(float(r["found_10"]) > 0) for r in answerable),
-        "hit_5": _mean(int(float(r["found_5"]) > 0) for r in answerable),
-        "off_topic_refused": _mean(r["refused"] for r in off_topic),
-        "false_refusals": _mean(r["refused"] for r in answerable),
-        "by_type": by_type,
-    }
-    manual = manual or {}
-    scored = {i: v for i, v in manual.items() if any(r["id"] == i for r in ok)}
-    total = sum(t for t, _ in scored.values())
-    out["faithfulness"] = round(sum(s for _, s in scored.values()) / total, 3) if total else None
-    out["faithfulness_questions"] = len(scored)
+    for r in scored:
+        by_type.setdefault(r["type"], []).append(r["recall5"])
+    return {"n": len(rows), "n_avec_gold": len(scored), "n_hors_sujet": len(off),
+            "recall@10": _mean(r["recall10"] for r in scored),
+            "recall@5": _mean(r["recall5"] for r in scored),
+            "recall@5 par type": {t: _mean(v) for t, v in by_type.items()},
+            "refus a tort (question avec gold refusee)": sum(r["refused"] for r in scored),
+            "hors sujet refuses": f"{sum(r['refused'] for r in off)}/{len(off)}",
+            "citations valides": _mean(r["trace_ok"] for r in rows),
+            "n_catalogue": len(cat),
+            "catalogue cite [catalogue]": _mean(r["used_catalogue"] for r in cat)}
+
+
+def summarize(rows, manual=None):
+    """Résumé global, dev (réglage) et held-out (jamais utilisé pour régler), + mesures manuelles."""
+    summary = {"toutes": stats(rows),
+               "dev": stats([r for r in rows if not r["heldout"]]),
+               "heldout": stats([r for r in rows if r["heldout"]])}
+    summary["erreurs"] = [r["id"] for r in rows if r["error"]]
+    if manual:
+        done = [m for m in manual.values() if m["total"]]
+        total = sum(m["total"] for m in done)
+        off = [m["offtopic_ok"] for m in manual.values() if m["offtopic_ok"] is not None]
+        summary["manuel"] = {
+            "fidelite (affirmations soutenues / total)": round(sum(m["supported"] for m in done) / total, 3) if total else None,
+            "questions relues": len(done),
+            "hors sujet corrects": _mean(off)}
+    return summary
+
+
+def format_summary(summary):
+    lines = []
+    for name in ("toutes", "dev", "heldout"):
+        s = summary[name]
+        if not s["n"]:
+            continue
+        lines.append(f"== {name} ({s['n']} questions : {s['n_avec_gold']} avec gold, {s['n_hors_sujet']} hors sujet)")
+        for key in ("recall@10", "recall@5", "refus a tort (question avec gold refusee)",
+                    "hors sujet refuses", "citations valides"):
+            lines.append(f"   {key}: {s[key]}")
+        lines.append(f"   recall@5 par type: {s['recall@5 par type']}")
+        if s["n_catalogue"]:
+            lines.append(f"   questions catalogue ({s['n_catalogue']}) citant [catalogue]: {s['catalogue cite [catalogue]']}")
+    if summary["erreurs"]:
+        lines.append(f"!! erreurs (exclues des moyennes) : {summary['erreurs']}")
+    if "manuel" in summary:
+        lines.append("== mesures manuelles")
+        lines += [f"   {k}: {v}" for k, v in summary["manuel"].items()]
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ fichiers
+RESULT_COLUMNS = ["id", "type", "heldout", "recall10", "recall5", "rank10", "rank5", "refused",
+                  "retries", "removed", "n_citations", "used_catalogue", "trace_ok", "error"]
+
+
+def write_results(folder, rows):
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    with open(folder / "results.csv", "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=RESULT_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+    (folder / "rows.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def write_manual_template(folder, rows):
+    """À remplir à la main. `offtopic_ok` est pré-rempli par le refus automatique : à vérifier."""
+    path = Path(folder) / "manual.csv"
+    if path.exists():                                  # ne jamais écraser ce que tu as rempli
+        return path
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["id", "claims_total", "claims_supported", "offtopic_ok"])
+        for r in rows:
+            guess = r["refused"] if r["offtopic"] and not r["error"] else ""
+            writer.writerow([r["id"], "", "", guess])
+    return path
+
+
+def read_manual(path):
+    """manual.csv -> {id: {total, supported, offtopic_ok}} (cases vides = non remplies)."""
+    path = Path(path)
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        head = f.readline()
+        f.seek(0)
+        delimiter = ";" if head.count(";") > head.count(",") else ","
+        out = {}
+        for row in csv.DictReader(f, delimiter=delimiter):
+            def num(key):
+                value = (row.get(key) or "").strip()
+                return int(value) if value.isdigit() else None
+            out[row["id"]] = {"total": num("claims_total"), "supported": num("claims_supported") or 0,
+                              "offtopic_ok": num("offtopic_ok")}
     return out
 
 
-def format_summary(s, title=""):
-    def pct(x):
-        return "n/a" if x is None else f"{x * 100:.0f} %"
-    lines = [f"== {title or 'Résumé'} ==",
-             f"Questions : {s['n_questions']} (erreurs : {s['n_errors']})",
-             f"Recall@10 : {pct(s['recall_10'])}   Recall@5 : {pct(s['recall_5'])}   "
-             f"(au moins un bon passage : top10 {pct(s['hit_10'])}, top5 {pct(s['hit_5'])})",
-             f"Hors sujet refusés : {pct(s['off_topic_refused'])}   Refus à tort : {pct(s['false_refusals'])}",
-             f"Fidélité (manuelle) : {pct(s['faithfulness'])} sur {s['faithfulness_questions']} réponse(s)",
-             "Par type :"]
-    for t, v in s["by_type"].items():
-        lines.append(f"  - {t} (n={v['n']}) : recall@10 {pct(v['recall_10'])}, recall@5 {pct(v['recall_5'])}")
-    return "\n".join(lines)
+def write_review(path, results, settings_snapshot):
+    """review.md : pour chaque question, la réponse et les passages à comparer (pour la fidélité)."""
+    lines = ["# Relecture manuelle", "",
+             "Pour chaque réponse : compte les affirmations (claims_total) et combien sont bien dans les "
+             "passages cités (claims_supported), puis remplis manual.csv.", "",
+             f"Réglages du run : `{json.dumps(settings_snapshot, ensure_ascii=False)}`", ""]
+    for question, answer, row in results:
+        lines += [f"---\n\n## {question['id']} · {question['type']}", f"**Question :** {question['question']}"]
+        if question["reference"]:
+            lines.append(f"**Référence :** {question['reference']}")
+        gold = " ; ".join(f"{g['article']} | {g['section']} | p. {g['start']}-{g['end']}" for g in question["gold"])
+        lines.append(f"**Gold :** {gold or 'aucun (hors sujet ou catalogue)'}")
+        if answer is None:
+            lines += [f"**ERREUR :** {row['error']}", ""]
+            continue
+        lines += [f"**Rang du gold :** top10 = {row['rank10']}, top5 = {row['rank5']}", "",
+                  "**Réponse du système :**", "", answer.text, "", "**Passages envoyés au LLM :**", ""]
+        for n, hit in enumerate(answer.hits, start=1):
+            mark = " ✔ GOLD" if not question["offtopic"] and is_hit(hit, question["gold"]) else ""
+            snippet = hit.text.replace("\n", " ")
+            snippet = snippet[:700] + ("…" if len(snippet) > 700 else "")
+            tables = f" (+{len(hit.tables)} tableau(x))" if hit.tables else ""
+            lines += [f"- **[{n}]** {hit.header} ({hit.pages}){mark}{tables}", f"  > {snippet}"]
+        lines.append("")
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
 
 
-def compare(named_summaries):
-    """Tableau texte : une colonne par run. named_summaries = [(nom, summary), ...]."""
-    keys = [("recall_10", "Recall@10"), ("recall_5", "Recall@5"), ("hit_10", "Au moins 1 (top10)"),
-            ("hit_5", "Au moins 1 (top5)"), ("off_topic_refused", "Hors sujet refusés"),
-            ("false_refusals", "Refus à tort"), ("faithfulness", "Fidélité")]
-    names = [n for n, _ in named_summaries]
-    width = max(len(n) for n in names + ["Mesure"]) + 2
-    head = f"{'Mesure':<22}" + "".join(f"{n:>{width}}" for n in names)
-    lines = [head, "-" * len(head)]
-    for key, label in keys:
-        cells = []
-        for _, s in named_summaries:
-            v = s.get(key)
-            cells.append("n/a" if v is None else f"{v * 100:.0f} %")
-        lines.append(f"{label:<22}" + "".join(f"{c:>{width}}" for c in cells))
-    return "\n".join(lines)
+# ------------------------------------------------------------------ diagnostic
+def explain_gold(retriever, question, k=100):
+    """Pour chaque chunk du gold : son rang dans la recherche sémantique et dans BM25 (par requête),
+    et s'il est dans les 10 candidats / les 5 retenus. Sert à comprendre OÙ un bon passage se perd."""
+    result = retriever.retrieve(question["question"])
+    gold_ids = [cid for cid, h in retriever.hits.items() if is_hit(h, question["gold"])]
+    ranks = {"vector": {}, "keyword": {}}
+    for query in result.queries:
+        for name, searcher in (("vector", retriever.vector), ("keyword", retriever.keyword)):
+            found = searcher.search(query, k)
+            ranks[name][query] = {cid: found.index(cid) + 1 for cid in gold_ids if cid in found}
+    candidates = {h.chunk_id for h in result.candidates}
+    final = {h.chunk_id for h in result.final}
+    rows = []
+    for cid in gold_ids:
+        vec = [ranks["vector"][q].get(cid) for q in result.queries]
+        kw = [ranks["keyword"][q].get(cid) for q in result.queries]
+        best = min([r for r in vec + kw if r] or [10 ** 9])
+        rows.append({"chunk_id": cid, "header": retriever.hits[cid].header, "vector": vec, "keyword": kw,
+                     "in_candidates": cid in candidates, "in_final": cid in final, "best": best})
+    rows.sort(key=lambda r: r["best"])
+    return {"queries": result.queries, "rows": rows}

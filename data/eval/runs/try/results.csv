@@ -1,0 +1,7 @@
+﻿id,type,heldout,recall10,recall5,rank10,rank5,refused,retries,removed,n_citations,used_catalogue,trace_ok,error
+q01,specific,False,1,1,1,1,0,0,[],1,0,1,
+q02,specific,False,1,1,2,1,0,0,[],1,0,1,
+q03,offtopic,False,,,,,1,0,[],0,0,1,
+q04,comparaison,False,0,0,,,0,0,[],1,0,1,
+q05,comparaison,False,0,0,,,0,0,[],1,0,1,
+q06,comparaison,False,0,0,,,1,0,[],0,0,1,

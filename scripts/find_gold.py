@@ -1,63 +1,50 @@
-"""Trouve les chunks candidats pour une question, pour aider à remplir le gold.
+"""Trouve où se trouve une réponse : cherche des mots dans data/chunks.jsonl et affiche
+les lignes `gold` prêtes à copier dans questions.yaml.
 
-Usage :
-    python scripts/find_gold.py "Quels GAN sont utilisés pour MRI-to-CT ?"
-    python scripts/find_gold.py "Quels GAN..." --keywords "GAN,CycleGAN,MRI,CT"
-    python scripts/find_gold.py "Quels GAN..." --top 8
+    python scripts/find_gold.py "lowest MAE"
+    python scripts/find_gold.py PET MRI attenuation        # plusieurs mots : tous doivent être présents
+    python scripts/find_gold.py "SSIM" --article zimmermann --max 10
 """
 import argparse
-import json
 import re
-import unicodedata
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-def _norm(text):
-    """Minuscules, sans accents, pour une recherche robuste."""
-    text = unicodedata.normalize("NFKD", text or "")
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    return text.lower()
+from rag.ingestion.index import load_chunks_jsonl
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("question")
-    parser.add_argument("--keywords", default="",
-                        help="mots-clés séparés par des virgules (sinon extraits de la question)")
+    parser.add_argument("words", nargs="+")
     parser.add_argument("--chunks", default="data/chunks.jsonl")
-    parser.add_argument("--top", type=int, default=5)
+    parser.add_argument("--article", help="morceau du nom d'article (ex. zimmermann)")
+    parser.add_argument("--max", type=int, default=8)
     args = parser.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
 
-    if args.keywords:
-        keywords = [k.strip().lower() for k in args.keywords.split(",") if k.strip()]
-    else:
-        keywords = [w for w in re.findall(r"\w{4,}", _norm(args.question))]
-
-    chunks = []
-    with open(args.chunks, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                chunks.append(json.loads(line))
-
-    scored = []
-    for c in chunks:
-        haystack = _norm(c.get("text", "") + " " + c.get("header", ""))
-        hits = sum(1 for kw in keywords if kw in haystack)
-        if hits > 0:
-            scored.append((hits, c))
-
-    scored.sort(key=lambda x: -x[0])
-
-    print(f"\nQuestion : {args.question}")
-    print(f"Mots-clés : {keywords}")
-    print(f"Chunks candidats (top {args.top}) :\n")
-    for hits, c in scored[:args.top]:
-        print(f"  [{hits} hits] {c['chunk_id']}")
-        print(f"    Article    : {c['article_id']}")
-        print(f"    Section    : {c.get('section')} > {c.get('sous_section')}")
-        print(f"    Pages      : {c.get('page_start')}-{c.get('page_end')}")
-        print(f"    Extrait    : {c.get('text', '')[:200].replace(chr(10), ' ')}...")
-        print()
+    words = [w.lower() for w in args.words]
+    shown = 0
+    for r in load_chunks_jsonl(args.chunks):
+        if args.article and args.article.lower() not in r["article_id"].lower():
+            continue
+        text = r["text"] + " " + " ".join(t.get("text", "") for t in r.get("tables", []))
+        if not all(w in text.lower() for w in words):
+            continue
+        where = r.get("sous_section") or r.get("section") or ""
+        p1, p2 = r.get("page_start"), r.get("page_end")
+        pages = f"{p1}-{p2}" if p2 and p2 != p1 else f"{p1}"
+        pos = text.lower().find(words[0])
+        extrait = re.sub(r"\s+", " ", text[max(0, pos - 120): pos + 200])
+        print(f"gold: {r['article_id']} | {where} | pages {pages}")
+        print(f"      …{extrait}…\n")
+        shown += 1
+        if shown >= args.max:
+            break
+    if not shown:
+        print("Rien trouvé : essaie un autre mot (ou moins de mots).")
 
 
 if __name__ == "__main__":

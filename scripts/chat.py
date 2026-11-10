@@ -9,6 +9,7 @@ Commandes : /reset (nouvelle conversation), /quit
 import argparse
 import sys
 from pathlib import Path
+from rag.generation.answer import looks_french
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -30,7 +31,9 @@ def show(answer, debug):
             print(f"[citations] nouvel essai : {answer.retries}, numéros invalides retirés : {answer.removed}")
     print("\n" + answer.text)
     if answer.used_catalogue:
-        print("\n[catalogue] = liste des articles de la collection")
+        legend = ("liste des articles de la collection" if looks_french(answer.question)
+                    else "list of the papers in the collection")
+        print(f"\n[catalogue] = {legend}")
     for c in answer.citations:
         print(f"[{c['n']}] {c['citation']} · {c['section']} ({c['pages']}) — {c['title']}")
     print()
