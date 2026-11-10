@@ -44,6 +44,7 @@
     - 2025_guo_ct-synthesis-radiotherapy-review | 4. Training Strategies | pages 7
     - 2025_guo_ct-synthesis-radiotherapy-review | 4.3. Learning Paradigms | pages 9
     - 2021_rossi_cbct-sct-supervised-vs-unsupervised | 1.1. Background | pages 2
+    - 2024_dayarathna_mri-ct-pet-review | 8. Conclusion | pages 27
   reponse_reference: "Supervised and unsupervised (and semi-supervised in some papers)."
 
 - id: q06
@@ -58,6 +59,7 @@
     - 2025_molina-maza_cbct-mri-sct-proton-head | 2 STATE-OF-THE-ART | pages 3
     - 2023_suwanraksa_cbct-ct-registration-gan-head-neck | 1.3. CT Synthesis Using Deep Learning | pages 3-4
     - 2023_szmul_cbct-sct-abdominal-paediatric | 4.Discussion | pages 15
+    - 2024_dayarathna_mri-ct-pet-review | 5. Overview of public datasets | pages 19
   reponse_reference: "pelvis, abdomen, head and neck, brain, thorax, breast, spine, lung"
 
 # ---------------------------------------------------------------- discussion (1)
