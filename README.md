@@ -215,9 +215,9 @@ are committed so the app does not need to rebuild anything at startup.
 ## Author
 
 Abla Rabia — AI engineer (ESI Algiers).
-<!-- TODO: add your links: GitHub · LinkedIn · email -->
+[GitHub](https://github.com/abla-rabia) · [LinkedIn](www.linkedin.com/in/abla-rabia) · la_rabia@esi.dz
 
 ## Licence
 
-Code: MIT (see `LICENSE`). <!-- TODO: add a LICENSE file with the MIT text and your name -->
+Code: MIT (see `LICENSE`).
 The papers keep their own CC BY licences.
