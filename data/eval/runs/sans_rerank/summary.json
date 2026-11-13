@@ -16,62 +16,59 @@
   "llm": "openai/gpt-oss-20b"
  },
  "toutes": {
-  "n": 4,
-  "n_avec_gold": 4,
-  "n_hors_sujet": 0,
-  "recall@10": 1.0,
-  "recall@5": 1.0,
+  "n": 14,
+  "n_avec_gold": 8,
+  "n_hors_sujet": 5,
+  "recall@10": 0.875,
+  "recall@5": 0.875,
   "recall@5 par type": {
    "specific": 1.0,
-   "definition": 1.0
+   "definition": 1.0,
+   "comparaison": 0.0,
+   "limite-large": 1.0,
+   "discussion": 1.0,
+   "tableau": 1.0
   },
-  "refus a tort (question avec gold refusee)": 1,
-  "hors sujet refuses": "0/0",
+  "refus a tort (question avec gold refusee)": 2,
+  "hors sujet refuses": "5/5",
   "citations valides": 1.0,
-  "n_catalogue": 0,
-  "catalogue cite [catalogue]": null
+  "n_catalogue": 1,
+  "catalogue cite [catalogue]": 1.0
  },
  "dev": {
-  "n": 3,
-  "n_avec_gold": 3,
-  "n_hors_sujet": 0,
-  "recall@10": 1.0,
-  "recall@5": 1.0,
+  "n": 11,
+  "n_avec_gold": 6,
+  "n_hors_sujet": 4,
+  "recall@10": 0.833,
+  "recall@5": 0.833,
   "recall@5 par type": {
    "specific": 1.0,
-   "definition": 1.0
+   "definition": 1.0,
+   "comparaison": 0.0,
+   "limite-large": 1.0,
+   "discussion": 1.0
   },
-  "refus a tort (question avec gold refusee)": 1,
-  "hors sujet refuses": "0/0",
+  "refus a tort (question avec gold refusee)": 2,
+  "hors sujet refuses": "4/4",
   "citations valides": 1.0,
-  "n_catalogue": 0,
-  "catalogue cite [catalogue]": null
+  "n_catalogue": 1,
+  "catalogue cite [catalogue]": 1.0
  },
  "heldout": {
-  "n": 1,
-  "n_avec_gold": 1,
-  "n_hors_sujet": 0,
+  "n": 3,
+  "n_avec_gold": 2,
+  "n_hors_sujet": 1,
   "recall@10": 1.0,
   "recall@5": 1.0,
   "recall@5 par type": {
-   "definition": 1.0
+   "definition": 1.0,
+   "tableau": 1.0
   },
   "refus a tort (question avec gold refusee)": 0,
-  "hors sujet refuses": "0/0",
+  "hors sujet refuses": "1/1",
   "citations valides": 1.0,
   "n_catalogue": 0,
   "catalogue cite [catalogue]": null
  },
- "erreurs": [
-  "q05",
-  "q06",
-  "q07",
-  "q09",
-  "q10",
-  "q11",
-  "q12",
-  "q13",
-  "q14",
-  "q15"
- ]
+ "erreurs": []
 }

@@ -44,7 +44,6 @@
     - 2025_guo_ct-synthesis-radiotherapy-review | 4. Training Strategies | pages 7
     - 2025_guo_ct-synthesis-radiotherapy-review | 4.3. Learning Paradigms | pages 9
     - 2021_rossi_cbct-sct-supervised-vs-unsupervised | 1.1. Background | pages 2
-    - 2024_dayarathna_mri-ct-pet-review | 8. Conclusion | pages 27
   reponse_reference: "Supervised and unsupervised (and semi-supervised in some papers)."
 
 - id: q06
@@ -71,7 +70,7 @@
     - 2024_dayarathna_mri-ct-pet-review | Abstract | pages 1
   reponse_reference: "Capturing local detail (receptive fields), perceptual quality, multi-centre data variability, and the complex non-linear mapping between modalities."   # À VÉRIFIER
 
-# ---------------------------------------------------------------- tableaux (2) : q08 à compléter (voir en bas)
+# ---------------------------------------------------------------- 
 - id: q09
   type: tableau
   heldout: true
@@ -79,7 +78,7 @@
   gold:
     - 2024_dayarathna_mri-ct-pet-review | 5. Overview of public datasets | pages 19-20
     - 2024_sherwani_synthetic-image-radiotherapy-review | 5.1.3 Datasets, open-source libraries and tools | pages 21
-  reponse_reference: "For example OASIS Brain, ADNI, Deep Lesion, MRNet, IVDM3Seg."   # À VÉRIFIER (Table 4 de Dayarathna)
+  reponse_reference: "For example OASIS Brain, ADNI, Deep Lesion, MRNet, IVDM3Seg."   
 
 # ---------------------------------------------------------------- catalogue (1)
 - id: q10
