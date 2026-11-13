@@ -7,6 +7,8 @@
 **[▶ Live demo](https://synthlit-app-ravwypnv62c6kzfhdsniyd.streamlit.app/)** · v1.0.0
 <sub>(free hosting: the app sleeps after 12 h without visits; the first click wakes it up in about a minute)</sub>
 
+![SynthLit home page: title, example questions and the question box](docs/screenshot-home.png)
+
 ![SynthLit answering a question with numbered citations and an open source card](docs/screenshot-answer.png)
 
 | A question outside the papers is refused | Sources are cards with the exact excerpt |
@@ -53,7 +55,6 @@ question + history ─► standalone question ─► 3 queries (1 + 2 rewrites) 
 **Generation** (`rag/generation/`)
 - Groq `openai/gpt-oss-20b`, temperature 0. The prompt contains the 5 numbered passages and a compact catalogue of the 21 papers.
 - Citations are validated by code: only `[1]`–`[5]` and `[catalogue]` are accepted; one retry on invalid or missing citations, then invalid numbers are stripped.
-- Refusal uses a language-independent marker (`NO_ANSWER`), and the code prints the refusal message (in English).
 - Chat memory keeps the last 4 exchanges without their citations, so numbering never clashes between turns.
 
 **App** (`app.py`, `pages/`, `ui/`) — Streamlit
@@ -82,7 +83,6 @@ Each choice is a trade-off. This table says what I chose, why, and what I gave u
 | Reranker | Cross-encoder MiniLM-L6, 10 → 5 | Reads question and passage together; first relevant passage moves from rank 2.3 to 1.1 | Small model, small sample: indication, not proof |
 | LLM | Groq `gpt-oss-20b`, temperature 0 | Free tier, fast, deterministic answers | Rate limits (per minute and per day) and a free API that can change |
 | Citations | Numbers `[1]`–`[5]` validated by code, one retry | A cited number must point to a real passage | A valid number does not prove the claim is supported (see faithfulness) |
-| Refusal | `NO_ANSWER` marker, message printed by code | An exact refusal sentence broke when the model translated it | The marker rule must stay in the prompt |
 | Memory | Last 4 exchanges, in RAM, citations stripped | Enables follow-ups, nothing stored, no numbering clash | Long conversations forget the beginning |
 | UI | Streamlit | A real app in Python, no separate frontend | Reruns the script on each interaction; custom look needs CSS |
 | Hosting | Streamlit Community Cloud | Free, deploys from GitHub, secrets handled by the platform | Sleeps after 12 h; limited memory. Hugging Face Docker Spaces would have been my first choice, but they now require a paid plan |
@@ -144,7 +144,7 @@ Reproduce: `python scripts/eval.py --name baseline` then `python scripts/compare
 
 ## Known limits
 
-- **Faithfulness is 85%, not 100%.** Short factual answers are fully supported; long explanatory answers mix retrieved content with the model's background knowledge, and an odd sentence can slip in. A citation guarantees that the passage exists, not that it supports the sentence. Six claims I could not verify were counted as unsupported, so 85% is a lower bound.
+- **Faithfulness is 85%, not 100%.** Short factual answers are fully supported; long explanatory answers mix retrieved content with the model's background knowledge, and an odd sentence can slip in. A citation guarantees that the passage exists, not that it supports the sentence. 
 - **Wording sensitivity.** The generic question "What are different learning paradigms…" misses the dedicated section (the 5 retained passages are generic review chunks) and the system correctly refuses.
 - **Broad, cross-paper questions** are poorly covered. q06 ("body regions") counts as a hit because my gold is broad, but the answer only lists the brain and whole-body; the retained passages often come from one review.
 - **Small sample.** One question moves a score by ~7 points. Only one table question was tested. Gold for 4 questions was seeded from the system's output, so recall on those may be slightly optimistic.
