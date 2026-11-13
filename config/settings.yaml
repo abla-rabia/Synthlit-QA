@@ -28,6 +28,7 @@ embedding:
 llm:
   model: openai/gpt-oss-20b                # mode gratuit : Groq (clé GROQ_API_KEY dans .env)
   temperature: 0
+  fallback_model: llama-3.1-8b-instant     # modèle léger gratuit, après les 3 réponses premium
 
 retrieval:
   n_extra_queries: 2                       # + la question = 3 requêtes au total
@@ -48,3 +49,12 @@ generation:
   max_table_chars: 3000
   max_retries: 1                           # 1 nouvel essai si les citations sont invalides
   refusal: "I don't have enough information in the indexed papers to answer this question."
+
+app:
+  name: SynthLit              # nom affiché en haut (à changer quand tu choisis le nom)
+  free_questions: 3           # réponses avec le modèle principal, puis modèle léger
+  max_question_chars: 500
+  examples:
+    - How do vision transformers work?
+    - Which papers are reviews?
+    - What challenges does the field face?

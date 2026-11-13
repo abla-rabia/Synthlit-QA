@@ -5,6 +5,8 @@
     answer = chat.ask("Which GAN variants are used for MRI-to-CT?")
     print(answer.text); print(answer.citations)
 """
+import copy
+
 from langchain_core.messages import AIMessage, HumanMessage
 
 from rag.generation.answer import generate_answer
@@ -25,11 +27,21 @@ class RagPipeline:
         self.catalogue = catalogue_text(sources)
         self.gen = settings["generation"]
 
+    def with_llm(self, llm):
+        """Copie qui répond avec un autre LLM (reformulation, multi-query et réponse).
+
+        Index, BM25 et reranker restent partagés : rien n'est rechargé. Sert au modèle léger de l'app."""
+        retriever = copy.copy(self.retriever)
+        retriever.llm = llm
+        clone = copy.copy(self)
+        clone.llm, clone.retriever = llm, retriever
+        return clone
+
     def ask(self, question, history=None):
         retrieval = self.retriever.retrieve(question, history)
         answer = generate_answer(self.llm, retrieval.standalone, retrieval.final, self.catalogue,
-                                 self.sources, self.answer_prompt, self.gen["refusal"],
-                                 self.gen["max_retries"], self.gen["max_table_chars"])
+                            self.sources, self.answer_prompt, self.gen["refusal"],
+                            self.gen["max_retries"], self.gen["max_table_chars"])
         answer.retrieval = retrieval
         return answer
 

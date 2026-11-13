@@ -1,0 +1,16 @@
+[theme]
+primaryColor = "#2F7D4F"
+backgroundColor = "#F2F8F1"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#17321F"
+font = "sans serif"
+
+[client]
+showSidebarNavigation = false
+toolbarMode = "minimal"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
