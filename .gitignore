@@ -1,4 +1,6 @@
-.venv/
 .env
+.venv/
+build/
+data/pdfs/
+data/extracted_raw/
 __pycache__/
-data/extracted_test/
