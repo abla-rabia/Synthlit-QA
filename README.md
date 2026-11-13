@@ -1,10 +1,9 @@
 # SynthLit — cited Q&A over deep-learning papers on medical image synthesis
 
-> Working title: rename as you like. Ask a question in plain language and get an answer grounded in
-> 21 open-access papers, with numbered citations (paper, section, pages). If the papers do not contain
+> Ask a question in plain language and get an answer grounded in 21 open-access papers,
+> with numbered citations (paper, section, pages). If the papers do not contain
 > the answer, the assistant says so instead of guessing.
 
-**Status:** retrieval, generation and evaluation are done (v0.9). Streamlit app and deployment: in progress.
 <!-- TODO when the app is live: add the demo link and a screenshot here -->
 
 <!-- TODO: demo link  ·  ![screenshot](docs/screenshot.png) -->
@@ -78,16 +77,12 @@ output and then checked against the papers. Retrieval and generation are measure
 
 Recall is identical, but the reranker moves the first relevant passage from rank 2.3 to 1.1
 and one more answerable question was refused without it (q02, in both runs I made without it).
-With 8 answerable questions this is an indication, not a proof; I kept the reranker.
 Hybrid search and multi-query were not ablated in v1.
 
 **What works.** Questions answered by one passage (facts, definitions, a table question) are
 retrieved reliably, off-topic questions are always refused, and every answer carries
 validated citations.
 
-**What the evaluation changed.** Refusals are now detected with a language-independent marker
-(translated refusals were not recognised), the refusal rule was softened (an answerable question
-was refused), requests retry on Groq rate limits, and an incomplete gold passage list was fixed.
 
 Reproduce: `python scripts/eval.py --name baseline` then `python scripts/compare.py data/eval/runs/baseline data/eval/runs/sans_rerank`
 (questions live in `data/eval/questions.yaml`; `scripts/find_gold.py` finds passages, `scripts/explain.py` shows where a gold passage is lost).
@@ -96,7 +91,6 @@ Reproduce: `python scripts/eval.py --name baseline` then `python scripts/compare
 
 - **Wording sensitivity.** The generic question "What are different learning paradigms…" misses the dedicated section (the 5 retained passages are generic review chunks) and the system correctly refuses.
 - **Broad, cross-paper questions** are poorly covered. q06 ("body regions") counts as a hit because my gold is broad, but the answer only lists the brain and whole-body; the retained passages often come from one review.
-- **Faithfulness.** Short factual answers are fully supported; long explanatory answers (e.g. challenges) mix retrieved content with the model's background knowledge. Six claims I could not verify were counted as unsupported, so 85% is a lower bound.
 - **Small sample.** One question moves a score by ~7 points. Only one table question was tested. Gold for 4 questions was seeded from the system's output, so recall on those may be slightly optimistic.
 - **English-first.** The embedding model and papers are English; questions in French are answered in French, but retrieval is weaker. Equations and figures are not indexed, and some headings are mis-detected by the extraction.
 - **Free tier limits.** The Groq free tier limits tokens per minute; the evaluation script retries automatically.
@@ -146,20 +140,7 @@ pytest -q                              # unit tests
 | Language-independent refusal marker | Detecting a refusal by an exact sentence broke when the model translated it |
 | Gold = article + section + pages | Robust to re-chunking; matches the citation the user sees |
 
-## Roadmap
-
-- [ ] Streamlit app (one page: question, answer, cited sources) and Credits page
-- [ ] Free-tier limit (3 questions on the main model, then a lighter free model)
-- [ ] Deployment (Hugging Face Spaces) and demo link
-- [ ] Translate non-English questions before retrieval, then answer in the user's language
-- [ ] Limit chunks per paper in the final 5 to improve broad questions
-- [ ] Ablate hybrid search and multi-query; more questions, more table questions
-- [ ] Automate the faithfulness check
-
 ## Author
 
 Abla Rabia — AI engineer
 
-## Licence
-
-<!-- TODO: choose a licence for the code (e.g. MIT). The papers keep their own CC BY licences. -->
